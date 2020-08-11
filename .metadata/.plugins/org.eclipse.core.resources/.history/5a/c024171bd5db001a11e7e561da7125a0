@@ -323,7 +323,7 @@ void vModBus_slave (void *pvParameters)
 
 		if(xQueueReceive(vI2C1_queue_out,&(Receive_I2C1_in_str),0))
 		{
-			array_mb[9] = Receive_I2C1_in_str.temper;						// тестовая переменная. счётчик считает в vI2C1 таске и передаёт сюда.
+			array_mb[9] = Receive_I2C1_in_str.temper;						// тестовая переменная. счётчик
 		}
 
 

@@ -58,6 +58,7 @@ QueueHandle_t vI2C1_queue_out;
 
 
 
+
 //глобальные переменные
 unsigned int 	delay_packet 			= 0;				// задержка между пакетами. будет равна 7, что значит 1,75 мс
 unsigned int	flag_UART_in 			= 0;				// флаг начала приЄма посылки по UART
@@ -173,17 +174,10 @@ void USART1_IRQHandler(void)
 //TODO I2C1
 void vI2C1 (void *pvParameters)
 {
-	i2c1_in_str		Receive_I2C1_in_str;
-	i2c1_out_str	Sender_I2C1_out_str;
-
-	Sender_I2C1_out_str.temper = 0;
-
 
 	while(1)
 	{
 
-		Sender_I2C1_out_str.temper++;
-		xQueueSend(vI2C1_queue_out,&Sender_I2C1_out_str,4);
 
 		vTaskDelay(1);
 	}// скобочка бесконечного цикла
@@ -234,8 +228,6 @@ void vModBus_slave (void *pvParameters)
 
 	modbus_in_str	Receive_Modbus_in_str;			// локальные экземпл€ры структур из прерывани€ уарта
 	modbus_out_str	Sender_Modbus_out_str;
-
-	i2c1_out_str 	Receive_I2C1_in_str;
 
 
 	unsigned short	array_mb[leth_array]	= {};	// массив дл€ хранени€ прин€тых/переданных слов
@@ -319,12 +311,6 @@ void vModBus_slave (void *pvParameters)
 
 
 		array_mb[8]++;
-
-
-		if(xQueueReceive(vI2C1_queue_out,&(Receive_I2C1_in_str),0))
-		{
-			array_mb[9] = Receive_I2C1_in_str.temper;						// тестова€ переменна€. счЄтчик считает в vI2C1 таске и передаЄт сюда.
-		}
 
 
 		if(xQueueReceiveFromISR(vModBus_slave_queue_in,&(Receive_Modbus_in_str),0))				// ждЄм, пока прерывание не пришлЄт посылку.//
