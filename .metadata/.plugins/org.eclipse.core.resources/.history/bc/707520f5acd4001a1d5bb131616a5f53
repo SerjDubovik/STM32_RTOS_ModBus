@@ -1,0 +1,550 @@
+#include "stm32f10x.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+
+#include "main.h"
+#include "timer.h"
+
+
+#define F_CPU 8000000UL
+
+#define adrr_devise 					81 // 2				// адрес этого устройства в сети модбас
+#define leth_array						50					// длинна массива для принятых/отправленых данных. служит для проверки возможности записи по адресу
+
+
+
+// структуры
+typedef struct
+{
+	unsigned int 	count_modbas_in;						// счётчик кол-ва принятых байт
+	unsigned int 	array_modbas_in[leth_array];			// буфер для приёма из уарта
+} modbus_in_str;
+
+modbus_in_str Modbus_in_str;
+
+typedef struct
+{
+	unsigned int 	count_modbas_out;						// счётчик кол-ва переданных байт
+	unsigned int 	array_modbas_out[leth_array];			// буфер для передачи из уарта
+}modbus_out_str;
+
+modbus_out_str Modbus_out_str;
+
+
+
+// очередь сообщений
+QueueHandle_t vModBus_slave_queue_in;
+QueueHandle_t vModBus_slave_queue_out;
+
+
+
+
+//глобальные переменные
+unsigned int 	delay_packet = 0;							// задержка между пакетами. будет равна 7, что значит 1,75 мс
+char 			flag_UART_in = 0;							// флаг начала приёма посылки по UART
+int 			buffer_index			= 0;						// счётчик для отправки
+
+
+
+// Обработчики прерываний
+
+void TIM2_IRQHandler (void)									// обработчик таймера для всяких задержек
+{
+	unsigned short status;
+	status = TIM2->SR;
+	TIM2->SR = ~status;
+
+	if(status & TIM_SR_UIF)
+	{
+		if(delay_packet != 0)								// отсчёт времени для слейва
+		{
+			delay_packet--;
+		}
+
+		 if (flag_UART_in == 1)								// проверка флага начала приёма. истина когда пришёл первый байт.
+		 	{
+		 		if (delay_packet == 0)						// проверка на таймаут приёма. пока время не вышло ждём байты
+		 		{
+		 			flag_UART_in = 0;						// сбрасываем флаг начала приема, переходим к анализу принятого
+
+		 			xQueueSendFromISR(vModBus_slave_queue_in,&(Modbus_in_str),0);
+
+		 		}
+		 	}
+	}
+}	// скобка TIM2_IRQHandler
+
+
+
+
+
+void USART1_IRQHandler(void)
+{
+	unsigned short temp =  USART1->SR;
+	USART1->SR = 0;
+
+	 if (temp & USART_SR_RXNE)								// RXNE - что-то пришло, можно забирать. сбрасывается при чтении DR
+		{
+
+			 Modbus_in_str.array_modbas_in[(Modbus_in_str.count_modbas_in & 0x0ff)] = USART1->DR;	// записываем байт в буферный массив для приёма.
+			 Modbus_in_str.count_modbas_in++;				// увеличиваем счётчик байт в буфере
+
+
+			 delay_packet = 7;								// запускаем отсчёт 1,75 мс, каждый новый байт будет поддёргивать эту переменную. закончились байты - посылка принята.
+			 flag_UART_in = 1;								// флаг старта приёма посылки
+
+			 return;
+		}
+
+
+
+	 if(temp & USART_SR_TC)
+	 {
+		 USART1->CR1 	&= 	~(USART_CR1_TCIE); 				// выключаем прерывание по завершении передачи. злесь нужено включать приёмник
+		 //GPIOC->BSRR =  GPIO_BSRR_BR12;					// записать 0 в GPIOA.12. слушаем, если управляем микросхемой передатчиком сами
+		 return;
+	 }
+
+
+	 if (temp & USART_SR_TXE)
+		 {
+			 buffer_index++;								// Увеличиваем индекс
+
+
+			 xQueueReceiveFromISR(vModBus_slave_queue_out,&(Modbus_out_str),0);
+
+
+			 USART1->DR = Modbus_out_str.array_modbas_out[buffer_index];   // Берем данные из буффера.
+
+			 if(buffer_index == (Modbus_out_str.count_modbas_out-1))  		// Вывели весь буффер?
+				{
+					USART1->CR1 	&= 	~(USART_CR1_TXEIE); // Запрещаем прерывание по опустошению - передача закончена
+					USART1->CR1 	|= 	USART_CR1_TCIE; 	// включаем прерывание по завершении передачи
+
+					buffer_index = 0;						// сбрасываем буферную переменную счётчик, чтоб в следующий раз была
+				}
+		 }
+} // скобка USART1_IRQHandler
+
+
+
+
+
+//код обработки ошибок при создании задач
+#define	ERROR_ACTION(CODE,POS)		do{}while(0)
+
+
+
+//TODO blinker
+// Задача моргалка. Просто так. Мигает диодиком
+void vBlinker (void *pvParameters)
+{
+
+
+	//Конфигурирование GPIOC.13	красный светик на плате
+	GPIOC->CRH &= ~GPIO_CRH_MODE13;   			// очистить разряды MODE
+	GPIOC->CRH &= ~GPIO_CRH_CNF13;    			// очистить разряды CNF
+	GPIOC->CRH |=  GPIO_CRH_MODE13;   			// выход, 50MHz
+	GPIOC->CRH &= ~GPIO_CRH_CNF13;    			// общего назначения, симметричный
+
+
+
+	while(1)
+	{
+
+		GPIOC->BSRR = GPIO_BSRR_BR13;
+
+		vTaskDelay(500);
+
+		GPIOC->BSRR = GPIO_BSRR_BS13;
+
+		vTaskDelay(500);
+	}// безконечный цикл задачи vBlinker
+} // скобочка таска blinker
+
+
+
+
+
+//TODO slave
+void vModBus_slave (void *pvParameters)
+{
+
+	modbus_in_str	Receive_Modbus_in_str;			// локальные экземпляры структур из прерывания уарта
+	modbus_out_str	Sender_Modbus_out_str;
+
+	unsigned short	array_mb[100]			= {};	// массив для хранения принятых/переданных слов // leth_array
+
+	unsigned long 	crc_calc 				= 0;	// расчётная контрольная сумма
+	unsigned long 	adrr_var 				= 0;	// собраный адрес из массива принятого по сети. для сравнения.
+	unsigned long 	quantity_byte 			= 0;	// кол-во байт которое необходимо записать или считать по сети из памяти
+
+	unsigned int 	crc_read_low 			= 0;	// буферные переменные для сравнение контрольной суммы
+	unsigned int 	crc_read_high 			= 0;	//
+	unsigned int 	crc_calc_low 			= 0;	//
+	unsigned int 	crc_calc_high 			= 0;	//
+
+
+
+
+
+	// Вычислим и настроим бодрейт. (72 000 000/19200)/16 = 234.375 Получаем старшую часть 0хЕА, а младшую 0х6. Итого BRR = 0xEA6.
+	// (72 000 000 / 115 200) / 16 = 39,0625
+	// 39 = 27h
+	// 0.0625 * 16 = 1 (нужно округлять до целого в большую. не в этом случае канеш)
+	// 27h и 1h = 271h
+
+	/*
+	 * 115200 - 0x0271
+	 * 76800 - 0x03AA
+	 * 57600 - 0x04E2
+	 * 38400 - 0x0753
+	 * 28800 - 0x09C4
+	 * 19200 - 0x0EA6
+	 * 14400 - 0x1388
+	 * 9600 - 0x1D4C
+	 * 4800 - 0x3A98
+	 * 2400 - 0x7530
+	 */
+
+	//включаем татирование
+	RCC->APB2ENR |=   RCC_APB2ENR_AFIOEN;                // тактирование альтернативных функций GPIO
+	RCC->APB2ENR |=   RCC_APB2ENR_USART1EN;              // тактирование USART1
+
+	//конфигурирование PORTA.9 для TX
+	GPIOA->CRH   &= ~(GPIO_CRH_MODE9 | GPIO_CRH_CNF9);   // предочистка MODE и CNF
+	GPIOA->CRH   |=   GPIO_CRH_MODE9 | GPIO_CRH_CNF9_1;  // двухтактный выход с альтернати ф-ей, 50MHz
+
+	//конфигурирование PORTA.10 для RX
+	GPIOA->CRH   &= ~(GPIO_CRH_MODE10 | GPIO_CRH_CNF10);   // предочистка MODE и CNF
+	GPIOA->CRH   |=   GPIO_CRH_CNF10_0;                   // вход, третье состояние
+
+
+	// Задание режима работы
+	USART1->BRR   =   0x0271;                           // 115200
+	USART1->CR1  &=  ~USART_CR1_M;                      // 8 бит данных
+	USART1->CR2  &=  ~USART_CR2_STOP;                   // кол-во стоп-бит: 1
+
+	// Управление работой
+	USART1->CR1  |=   USART_CR1_TE;                     // включение передатчика
+	USART1->CR1  |=   USART_CR1_RE;                     // включение приёмника
+
+	USART1->CR1  |=   USART_CR1_UE;                     // включение модуля USART4
+	// Разрешить прерывания
+	NVIC_EnableIRQ (USART1_IRQn);
+	USART1->CR1  |=	USART_CR1_RXNEIE;				    // прерывание по завершению приёма
+	//USART1->CR1  |= 	USART_CR1_TCIE;                 // прерывание по завершению передачи
+
+
+
+
+	while(1)
+	{
+
+		if(array_mb[0] == 1)
+		{
+			GPIOC->BSRR = GPIO_BSRR_BR13;
+		}
+		if(array_mb[0] == 2)
+		{
+			GPIOC->BSRR = GPIO_BSRR_BS13;
+		}
+
+
+		array_mb[1]++;
+
+
+		if(xQueueReceiveFromISR(vModBus_slave_queue_in,&(Receive_Modbus_in_str),portMAX_DELAY))				// ждём, пока прерывание не пришлёт посылку.
+		{
+
+			if (Receive_Modbus_in_str.array_modbas_in[0] == adrr_devise) 							// проверка адреса устройства
+			{																// если адрес совпал, то смотрим что в пакете дальше
+				crc_calc = CRC16(Receive_Modbus_in_str.array_modbas_in, (Receive_Modbus_in_str.count_modbas_in-2));		// считаем CRC принятого пакета
+
+				crc_read_high = Receive_Modbus_in_str.array_modbas_in[Receive_Modbus_in_str.count_modbas_in-2]; 		// старший
+				crc_read_low = Receive_Modbus_in_str.array_modbas_in[Receive_Modbus_in_str.count_modbas_in-1];			// младший
+
+				crc_calc_low = ((crc_calc >> 8) & 0x00FF);					// младший (count_modbas_in+2)
+				crc_calc_high = (crc_calc & 0x00FF);						// старший (count_modbas_in+1)
+
+
+				if((crc_read_low == crc_calc_low)&&(crc_read_high == crc_calc_high))// проверка соответствия контрольной суммы.
+				{
+
+
+					switch (Receive_Modbus_in_str.array_modbas_in[1]) 	// свич определяет какая команда кроется в пакете.
+						{
+
+							case 0x06:				// запись значения в один регистр хранения (Preset Single Register).
+							{
+								adrr_var = Receive_Modbus_in_str.array_modbas_in[2];								// собераем адрес из массива в одну переменную
+								adrr_var = ((adrr_var << 8) | Receive_Modbus_in_str.array_modbas_in[3]);
+
+								if (adrr_var <= leth_array)															// проверка возможности записи по указанному адресу
+								{
+
+									array_mb[adrr_var] = Receive_Modbus_in_str.array_modbas_in[4];
+									array_mb[adrr_var] = ((array_mb[adrr_var] << 8) | Receive_Modbus_in_str.array_modbas_in[5]);
+
+
+
+									for(int i = 0; i<= Receive_Modbus_in_str.count_modbas_in; i++)					// скопируем масивы. так как ответ должен быть таким же как приёмный пакет.
+									{
+										Sender_Modbus_out_str.array_modbas_out[i] = Receive_Modbus_in_str.array_modbas_in[i];
+									}
+
+									Sender_Modbus_out_str.count_modbas_out = Receive_Modbus_in_str.count_modbas_in;
+									Receive_Modbus_in_str.count_modbas_in = 0;
+
+
+									// отправка ответа мастеру
+									xQueueSend(vModBus_slave_queue_out,&Sender_Modbus_out_str,4);		// шлём в обработчик заполненую структуру
+
+									//GPIOC->BSRR =  GPIO_BSRR_BS12;
+
+									buffer_index=0;				// Сбрасываем индекс
+
+									USART1->DR = Sender_Modbus_out_str.array_modbas_out[0];		// Отправляем первый байт из массива для отправки
+									USART1->CR1 	|= 	USART_CR1_TXEIE;		// включаем прерывание по опустошению души
+
+
+								} // скобка проверки адреса переменной
+								else 														// если адрес выходит за диапазон доступних, нужно записать код ошибки
+								{
+									Receive_Modbus_in_str.count_modbas_in = 0;
+								} // else скобка
+
+							} // скобка команды 0х06
+							break;
+
+
+
+							case 0x10:				// запись значений в несколько регистров хранения (Preset Multiple Registers)
+							{
+								adrr_var = Receive_Modbus_in_str.array_modbas_in[2];								// собераем адрес из массива в одну переменную
+								adrr_var = ((adrr_var << 8) | Receive_Modbus_in_str.array_modbas_in[3]);
+
+
+									if (adrr_var + (Receive_Modbus_in_str.array_modbas_in[6]/2) <= leth_array)	// проверка возможности записи по указанному адресу
+									{
+
+										int adrr_var_buf = adrr_var;
+
+										for (int i = 0; Receive_Modbus_in_str.array_modbas_in[6] > i ; i++)
+										{
+											array_mb[adrr_var_buf] = Receive_Modbus_in_str.array_modbas_in[(7+i)];	//
+											adrr_var_buf++;
+										} // скобка цикла
+
+
+										Sender_Modbus_out_str.array_modbas_out[0] = Receive_Modbus_in_str.array_modbas_in[0];
+										Sender_Modbus_out_str.array_modbas_out[1] = Receive_Modbus_in_str.array_modbas_in[1];
+										Sender_Modbus_out_str.array_modbas_out[2] = Receive_Modbus_in_str.array_modbas_in[2];
+										Sender_Modbus_out_str.array_modbas_out[3] = Receive_Modbus_in_str.array_modbas_in[3];
+										Sender_Modbus_out_str.array_modbas_out[4] = Receive_Modbus_in_str.array_modbas_in[4];
+										Sender_Modbus_out_str.array_modbas_out[5] = Receive_Modbus_in_str.array_modbas_in[5];
+
+
+										crc_calc = CRC16(Sender_Modbus_out_str.array_modbas_out, 6);				// считаем CRC отправляемого пакета, 3 точно известных байта и байты считанные , зависит от кол-ва в переменной
+
+										crc_calc_low = ((crc_calc >> 8) & 0x00FF);			// младший (count_modbas_in+2)
+										crc_calc_high = (crc_calc & 0x00FF);				// старший (count_modbas_in+1)
+
+										Sender_Modbus_out_str.array_modbas_out[6] = crc_calc_high;				// посчитаная контролька, пишем в массив для отправки
+										Sender_Modbus_out_str.array_modbas_out[7] = crc_calc_low;
+
+
+										Sender_Modbus_out_str.count_modbas_out = 8;								// ответ всегда равен 8 байт
+										Receive_Modbus_in_str.count_modbas_in = 0;
+
+
+										// отправка ответа мастеру
+										xQueueSend(vModBus_slave_queue_out,&Sender_Modbus_out_str,4);		// шлём в обработчик заполненую структуру
+
+										//GPIOC->BSRR =  GPIO_BSRR_BS12;
+
+										buffer_index=0;				// Сбрасываем индекс
+
+										USART1->DR = Sender_Modbus_out_str.array_modbas_out[0];		// Отправляем первый байт из массива для отправки
+										USART1->CR1 	|= 	USART_CR1_TXEIE;		// включаем прерывание по опустошению души
+
+
+									} // скобка проверки адреса переменных
+									else
+									{
+										Receive_Modbus_in_str.count_modbas_in = 0;
+									} // скобка проверки адреса переменных
+
+							} // скобка команды 0х10
+							break;
+
+
+
+							case 0x03:				// чтение значений из нескольких регистров хранения (Read Holding Registers).
+							{
+
+								adrr_var = Receive_Modbus_in_str.array_modbas_in[2];										// собераем адрес из массива в одну переменную
+								adrr_var = ((adrr_var << 8) | Receive_Modbus_in_str.array_modbas_in[3]);
+
+								quantity_byte = Receive_Modbus_in_str.array_modbas_in[4];
+								quantity_byte = ((quantity_byte << 8) | Receive_Modbus_in_str.array_modbas_in[5]);		// соберём кол-во байт, которое нужно прочитать
+
+
+								if ((adrr_var <= leth_array) || ((adrr_var + quantity_byte) <= leth_array))	// проверка возможности чтения данных по указанному адресу.
+								{
+									Sender_Modbus_out_str.array_modbas_out[0] = Receive_Modbus_in_str.array_modbas_in[0];						// адрес слейва, который отвечает на запрос
+									Sender_Modbus_out_str.array_modbas_out[1] = Receive_Modbus_in_str.array_modbas_in[1];						// код команды, на которую отвечает слейв (0х3 конкретно в этом случае)
+									Sender_Modbus_out_str.array_modbas_out[2] = quantity_byte * 2;						// колличество байт, которые передаём. переменная 2 байта, верх срежется, поэтому не можем разом в один пакет записать более 255-ти байт
+
+
+
+									for (int i = 0; i <= quantity_byte; i++, adrr_var++)
+									{
+										Sender_Modbus_out_str.array_modbas_out[i*2+3] = ((array_mb[adrr_var] >> 8) & 0x00FF);			// читаем из массива хранения в сеть по указанному адресу
+										Sender_Modbus_out_str.array_modbas_out[i*2+4] = (array_mb[adrr_var] & 0x00FF);
+									}
+
+									quantity_byte *= 2;
+																									// в слове по два байта
+									crc_calc = CRC16(Sender_Modbus_out_str.array_modbas_out, (quantity_byte + 3));		// считаем CRC отправляемого пакета, 3 точно известных байта и байты считанные , зависит от колва в переменной
+
+									crc_calc_low = ((crc_calc >> 8) & 0x00FF);						// младший (count_modbas_in+2)
+									crc_calc_high = (crc_calc & 0x00FF);							// старший (count_modbas_in+1)
+
+									Sender_Modbus_out_str.array_modbas_out[(quantity_byte + 3)] = crc_calc_high;			// посчитаная контролька, пишем в массив для отправки
+									Sender_Modbus_out_str.array_modbas_out[(quantity_byte + 3)+1] = crc_calc_low;			//
+
+									Sender_Modbus_out_str.count_modbas_out = (quantity_byte + 3)+2;
+									Receive_Modbus_in_str.count_modbas_in = 0;
+
+
+									// отправка ответа мастеру
+									xQueueSend(vModBus_slave_queue_out,&Sender_Modbus_out_str,4);		// шлём в обработчик заполненую структуру
+
+									//GPIOC->BSRR =  GPIO_BSRR_BS12;
+
+									buffer_index=0;				// Сбрасываем индекс
+
+									USART1->DR = Sender_Modbus_out_str.array_modbas_out[0];		// Отправляем первый байт из массива для отправки
+									USART1->CR1 	|= 	USART_CR1_TXEIE;		// включаем прерывание по опустошению души
+
+
+								} // скобка проверки адреса переменной
+								else // если адрес выходит за диапазон доступних, нужно записать код ошибки
+								{
+									Receive_Modbus_in_str.count_modbas_in = 0;
+								} // else скобка
+
+							} // скобка команды 0х03
+							break;
+
+
+
+							case 0x04:				// чтение значений из нескольких регистров ввода (Read Input Registers).
+							{
+
+							} // скобка команды 0х04
+							break;
+
+						} // скобка свича разбора пакета на команды.
+
+
+				} // скобка проверки совпадения принятого crc
+
+				else
+				{
+					// если оказались здесь, то crc не совпал. нужно сформировать обработчик ошибочной ситуации
+					Receive_Modbus_in_str.count_modbas_in = 0;
+				} // else скобка проверки совпадения принятого crc
+
+			} // скобка проверки адреса
+
+
+			else
+			{
+				// если оказались здесь, то посылка не наша, выходим из проверки и ждём следующую
+				Receive_Modbus_in_str.count_modbas_in = 0;
+			} // else скобка проверки адреса
+
+		}
+
+
+	}// бесконечный цикл задачи vModBus_slave
+
+} // закрывает задачу vModBus_slave
+
+
+
+
+
+
+
+
+
+//TODO main
+int main(void)
+{
+
+	vModBus_slave_queue_in = xQueueCreate(1,sizeof(modbus_in_str));		// инициализация очереди отправки в таск модбас
+	vModBus_slave_queue_out = xQueueCreate(1,sizeof(modbus_out_str));	// инициализация очереди приёма из таска модбаса
+
+	SystemInit();
+	init_timer2();										// инициализация таймера всех задержек
+
+
+	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;   // Разрешить тактирование GPIOA
+	RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;   // Разрешить тактирование GPIOB
+	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;   // Разрешить тактирование GPIOC
+	RCC->APB2ENR |= RCC_APB2ENR_IOPDEN;   // Разрешить тактирование GPIOD
+	RCC->APB2ENR |= RCC_APB2ENR_IOPEEN;	  // Разрешить тактирование GPIOE
+
+
+
+
+	if(pdTRUE != xTaskCreate(vBlinker,"Blinker", 	1024, NULL, tskIDLE_PRIORITY + 1, NULL))
+		{
+			ERROR_ACTION(TASK_NOT_CREATE,0);
+		}
+
+
+	if(pdTRUE != xTaskCreate(vModBus_slave,"ModBus Slave", 	1024, NULL, tskIDLE_PRIORITY + 1, NULL))
+		{
+			ERROR_ACTION(TASK_NOT_CREATE,0);
+		}
+
+
+	//NVIC_EnableIRQ (TIM2_IRQn);
+
+	__enable_irq ();
+
+	vTaskStartScheduler();						// Запускаем диспетчер и понеслась.
+
+
+}	// скобочка мейна
+
+
+
+
+
+
+
+// функция для расчёта контрольной суммы
+unsigned short CRC16(int *puchMsg,  /* Сообщение       */
+                            unsigned short usDataLen /* Длина сообщения */)
+{
+    unsigned short crc = 0xFFFF;
+    unsigned short uIndex;
+    int i;
+    for (uIndex = 0; uIndex < usDataLen; uIndex += 1) {
+        crc ^= (unsigned short)*(puchMsg + uIndex);
+        for (i = 8; i != 0; i -= 1) {
+          if ((crc & 0x0001) == 0) { crc >>= 1; }
+          else { crc >>= 1; crc ^= 0xA001; }			// полином задаём здесь
+        }
+    }
+    // Изменим порядок следования байт
+ //   crc = ((crc >> 8) & 0x00FF) | ((crc << 8) & 0xFF00);
+    return crc;
+}
