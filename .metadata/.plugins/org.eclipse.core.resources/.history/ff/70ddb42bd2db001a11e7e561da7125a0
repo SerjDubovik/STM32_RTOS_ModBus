@@ -178,8 +178,6 @@ void vI2C1 (void *pvParameters)
 	while(1)
 	{
 
-
-		vTaskDelay(1);
 	}// скобочка бесконечного цикла
 } // скобочка vI2C1
 
@@ -210,7 +208,6 @@ void vBlinker (void *pvParameters)
 		GPIOC->BSRR = GPIO_BSRR_BS13;
 
 		vTaskDelay(250);
-
 	}// безконечный цикл задачи vBlinker
 } // скобочка таска blinker
 
@@ -545,11 +542,8 @@ void vModBus_slave (void *pvParameters)
 int main(void)
 {
 
-	vModBus_slave_queue_in		= xQueueCreate(1,sizeof(modbus_in_str));		// инициализация очереди отправки в таск модбас
-	vModBus_slave_queue_out 	= xQueueCreate(1,sizeof(modbus_out_str));		// инициализация очереди приёма из таска модбаса
-
-	vI2C1_queue_in 				= xQueueCreate(1,sizeof(i2c1_in_str));			// в таск vI2C1
-	vI2C1_queue_out 			= xQueueCreate(1,sizeof(i2c1_out_str));			// из таска vI2C1
+	vModBus_slave_queue_in = xQueueCreate(1,sizeof(modbus_in_str));		// инициализация очереди отправки в таск модбас
+	vModBus_slave_queue_out = xQueueCreate(1,sizeof(modbus_out_str));	// инициализация очереди приёма из таска модбаса
 
 	SystemInit();
 	init_timer2();										// инициализация таймера всех задержек

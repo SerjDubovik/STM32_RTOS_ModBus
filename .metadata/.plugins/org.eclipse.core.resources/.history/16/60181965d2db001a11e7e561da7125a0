@@ -177,9 +177,13 @@ void vI2C1 (void *pvParameters)
 
 	while(1)
 	{
+		GPIOC->BSRR = GPIO_BSRR_BR13;
 
+		vTaskDelay(250);
 
-		vTaskDelay(1);
+		GPIOC->BSRR = GPIO_BSRR_BS13;
+
+		vTaskDelay(250);
 	}// скобочка бесконечного цикла
 } // скобочка vI2C1
 
@@ -202,7 +206,7 @@ void vBlinker (void *pvParameters)
 
 	while(1)
 	{
-
+/*
 		GPIOC->BSRR = GPIO_BSRR_BR13;
 
 		vTaskDelay(250);
@@ -210,7 +214,7 @@ void vBlinker (void *pvParameters)
 		GPIOC->BSRR = GPIO_BSRR_BS13;
 
 		vTaskDelay(250);
-
+*/
 	}// безконечный цикл задачи vBlinker
 } // скобочка таска blinker
 

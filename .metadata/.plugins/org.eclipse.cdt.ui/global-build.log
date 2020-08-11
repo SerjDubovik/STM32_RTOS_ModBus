@@ -1,236 +1,32 @@
-14:44:50 **** Incremental Build of configuration Debug for project FreeRTOS_ModBus ****
+15:59:56 **** Incremental Build of configuration Debug for project FreeRTOS_ModBus ****
 make -j4 all 
 Building file: ../src/main.c
-Building file: ../src/system_stm32f10x.c
-Building file: ../src/timer.c
-Building file: ../StdPeriph_Driver/src/misc.c
 Invoking: MCU GCC Compiler
-Invoking: MCU GCC Compiler
-Invoking: MCU GCC Compiler
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
 D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
 arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"src/main.d" -MT"src/main.o" -o "src/main.o" "../src/main.c"
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"src/system_stm32f10x.d" -MT"src/system_stm32f10x.o" -o "src/system_stm32f10x.o" "../src/system_stm32f10x.c"
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/misc.d" -MT"StdPeriph_Driver/src/misc.o" -o "StdPeriph_Driver/src/misc.o" "../StdPeriph_Driver/src/misc.c"
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"src/timer.d" -MT"src/timer.o" -o "src/timer.o" "../src/timer.c"
 ../src/main.c: In function 'vModBus_slave':
-../src/main.c:284:22: warning: pointer targets in passing argument 1 of 'CRC16' differ in signedness [-Wpointer-sign]
+../src/main.c:321:22: warning: pointer targets in passing argument 1 of 'CRC16' differ in signedness [-Wpointer-sign]
      crc_calc = CRC16(Receive_Modbus_in_str.array_modbas_in, (Receive_Modbus_in_str.count_modbas_in-2));  // считаем CRC принятого пакета
                       ^~~~~~~~~~~~~~~~~~~~~
 In file included from ../src/main.c:7:0:
 D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc/main.h:5:17: note: expected 'int *' but argument is of type 'unsigned int *'
   unsigned short CRC16(int *puchMsg,  /* Сообщение       */
                  ^~~~~
-../src/main.c:369:28: warning: pointer targets in passing argument 1 of 'CRC16' differ in signedness [-Wpointer-sign]
+../src/main.c:406:28: warning: pointer targets in passing argument 1 of 'CRC16' differ in signedness [-Wpointer-sign]
            crc_calc = CRC16(Sender_Modbus_out_str.array_modbas_out, 6);    // считаем CRC отправляемого пакета, 3 точно известных байта и байты считанные , зависит от кол-ва в переменной
                             ^~~~~~~~~~~~~~~~~~~~~
 In file included from ../src/main.c:7:0:
 D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc/main.h:5:17: note: expected 'int *' but argument is of type 'unsigned int *'
   unsigned short CRC16(int *puchMsg,  /* Сообщение       */
                  ^~~~~
-../src/main.c:430:27: warning: pointer targets in passing argument 1 of 'CRC16' differ in signedness [-Wpointer-sign]
+../src/main.c:467:27: warning: pointer targets in passing argument 1 of 'CRC16' differ in signedness [-Wpointer-sign]
           crc_calc = CRC16(Sender_Modbus_out_str.array_modbas_out, (quantity_byte + 3));  // считаем CRC отправляемого пакета, 3 точно известных байта и байты считанные , зависит от колва в переменной
                            ^~~~~~~~~~~~~~~~~~~~~
 In file included from ../src/main.c:7:0:
 D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc/main.h:5:17: note: expected 'int *' but argument is of type 'unsigned int *'
   unsigned short CRC16(int *puchMsg,  /* Сообщение       */
                  ^~~~~
-Finished building: ../src/system_stm32f10x.c
-Finished building: ../StdPeriph_Driver/src/misc.c
-Finished building: ../src/timer.c
- 
- 
- 
-Building file: ../StdPeriph_Driver/src/stm32f10x_adc.c
-Building file: ../StdPeriph_Driver/src/stm32f10x_bkp.c
-Building file: ../StdPeriph_Driver/src/stm32f10x_can.c
-Invoking: MCU GCC Compiler
-Invoking: MCU GCC Compiler
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_adc.d" -MT"StdPeriph_Driver/src/stm32f10x_adc.o" -o "StdPeriph_Driver/src/stm32f10x_adc.o" "../StdPeriph_Driver/src/stm32f10x_adc.c"
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_bkp.d" -MT"StdPeriph_Driver/src/stm32f10x_bkp.o" -o "StdPeriph_Driver/src/stm32f10x_bkp.o" "../StdPeriph_Driver/src/stm32f10x_bkp.c"
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_can.d" -MT"StdPeriph_Driver/src/stm32f10x_can.o" -o "StdPeriph_Driver/src/stm32f10x_can.o" "../StdPeriph_Driver/src/stm32f10x_can.c"
 Finished building: ../src/main.c
- 
-Building file: ../StdPeriph_Driver/src/stm32f10x_cec.c
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_cec.d" -MT"StdPeriph_Driver/src/stm32f10x_cec.o" -o "StdPeriph_Driver/src/stm32f10x_cec.o" "../StdPeriph_Driver/src/stm32f10x_cec.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_bkp.c
- 
-Finished building: ../StdPeriph_Driver/src/stm32f10x_adc.c
-Building file: ../StdPeriph_Driver/src/stm32f10x_crc.c
- 
-Finished building: ../StdPeriph_Driver/src/stm32f10x_can.c
-Invoking: MCU GCC Compiler
- 
-Building file: ../StdPeriph_Driver/src/stm32f10x_dac.c
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_crc.d" -MT"StdPeriph_Driver/src/stm32f10x_crc.o" -o "StdPeriph_Driver/src/stm32f10x_crc.o" "../StdPeriph_Driver/src/stm32f10x_crc.c"
-Invoking: MCU GCC Compiler
-Building file: ../StdPeriph_Driver/src/stm32f10x_dbgmcu.c
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_dac.d" -MT"StdPeriph_Driver/src/stm32f10x_dac.o" -o "StdPeriph_Driver/src/stm32f10x_dac.o" "../StdPeriph_Driver/src/stm32f10x_dac.c"
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_dbgmcu.d" -MT"StdPeriph_Driver/src/stm32f10x_dbgmcu.o" -o "StdPeriph_Driver/src/stm32f10x_dbgmcu.o" "../StdPeriph_Driver/src/stm32f10x_dbgmcu.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_cec.c
- 
-Building file: ../StdPeriph_Driver/src/stm32f10x_dma.c
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_dma.d" -MT"StdPeriph_Driver/src/stm32f10x_dma.o" -o "StdPeriph_Driver/src/stm32f10x_dma.o" "../StdPeriph_Driver/src/stm32f10x_dma.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_crc.c
-Finished building: ../StdPeriph_Driver/src/stm32f10x_dbgmcu.c
- 
- 
-Finished building: ../StdPeriph_Driver/src/stm32f10x_dac.c
-Building file: ../StdPeriph_Driver/src/stm32f10x_exti.c
- 
-Invoking: MCU GCC Compiler
-Building file: ../StdPeriph_Driver/src/stm32f10x_flash.c
-Building file: ../StdPeriph_Driver/src/stm32f10x_fsmc.c
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-Invoking: MCU GCC Compiler
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_exti.d" -MT"StdPeriph_Driver/src/stm32f10x_exti.o" -o "StdPeriph_Driver/src/stm32f10x_exti.o" "../StdPeriph_Driver/src/stm32f10x_exti.c"
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_flash.d" -MT"StdPeriph_Driver/src/stm32f10x_flash.o" -o "StdPeriph_Driver/src/stm32f10x_flash.o" "../StdPeriph_Driver/src/stm32f10x_flash.c"
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_fsmc.d" -MT"StdPeriph_Driver/src/stm32f10x_fsmc.o" -o "StdPeriph_Driver/src/stm32f10x_fsmc.o" "../StdPeriph_Driver/src/stm32f10x_fsmc.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_dma.c
- 
-Building file: ../StdPeriph_Driver/src/stm32f10x_gpio.c
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_gpio.d" -MT"StdPeriph_Driver/src/stm32f10x_gpio.o" -o "StdPeriph_Driver/src/stm32f10x_gpio.o" "../StdPeriph_Driver/src/stm32f10x_gpio.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_exti.c
- 
-Building file: ../StdPeriph_Driver/src/stm32f10x_i2c.c
-Finished building: ../StdPeriph_Driver/src/stm32f10x_fsmc.c
-Invoking: MCU GCC Compiler
- 
-Finished building: ../StdPeriph_Driver/src/stm32f10x_flash.c
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-Building file: ../StdPeriph_Driver/src/stm32f10x_iwdg.c
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_i2c.d" -MT"StdPeriph_Driver/src/stm32f10x_i2c.o" -o "StdPeriph_Driver/src/stm32f10x_i2c.o" "../StdPeriph_Driver/src/stm32f10x_i2c.c"
-Invoking: MCU GCC Compiler
- 
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-Building file: ../StdPeriph_Driver/src/stm32f10x_pwr.c
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_iwdg.d" -MT"StdPeriph_Driver/src/stm32f10x_iwdg.o" -o "StdPeriph_Driver/src/stm32f10x_iwdg.o" "../StdPeriph_Driver/src/stm32f10x_iwdg.c"
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_pwr.d" -MT"StdPeriph_Driver/src/stm32f10x_pwr.o" -o "StdPeriph_Driver/src/stm32f10x_pwr.o" "../StdPeriph_Driver/src/stm32f10x_pwr.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_gpio.c
- 
-Building file: ../StdPeriph_Driver/src/stm32f10x_rcc.c
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_rcc.d" -MT"StdPeriph_Driver/src/stm32f10x_rcc.o" -o "StdPeriph_Driver/src/stm32f10x_rcc.o" "../StdPeriph_Driver/src/stm32f10x_rcc.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_i2c.c
-Finished building: ../StdPeriph_Driver/src/stm32f10x_iwdg.c
- 
- 
-Building file: ../StdPeriph_Driver/src/stm32f10x_rtc.c
-Building file: ../StdPeriph_Driver/src/stm32f10x_sdio.c
-Invoking: MCU GCC Compiler
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-Finished building: ../StdPeriph_Driver/src/stm32f10x_pwr.c
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_rtc.d" -MT"StdPeriph_Driver/src/stm32f10x_rtc.o" -o "StdPeriph_Driver/src/stm32f10x_rtc.o" "../StdPeriph_Driver/src/stm32f10x_rtc.c"
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
- 
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_sdio.d" -MT"StdPeriph_Driver/src/stm32f10x_sdio.o" -o "StdPeriph_Driver/src/stm32f10x_sdio.o" "../StdPeriph_Driver/src/stm32f10x_sdio.c"
-Building file: ../StdPeriph_Driver/src/stm32f10x_spi.c
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_spi.d" -MT"StdPeriph_Driver/src/stm32f10x_spi.o" -o "StdPeriph_Driver/src/stm32f10x_spi.o" "../StdPeriph_Driver/src/stm32f10x_spi.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_rcc.c
- 
-Building file: ../StdPeriph_Driver/src/stm32f10x_tim.c
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_tim.d" -MT"StdPeriph_Driver/src/stm32f10x_tim.o" -o "StdPeriph_Driver/src/stm32f10x_tim.o" "../StdPeriph_Driver/src/stm32f10x_tim.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_rtc.c
- 
-Finished building: ../StdPeriph_Driver/src/stm32f10x_sdio.c
-Building file: ../StdPeriph_Driver/src/stm32f10x_usart.c
- 
-Invoking: MCU GCC Compiler
-Building file: ../StdPeriph_Driver/src/stm32f10x_wwdg.c
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-Invoking: MCU GCC Compiler
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_usart.d" -MT"StdPeriph_Driver/src/stm32f10x_usart.o" -o "StdPeriph_Driver/src/stm32f10x_usart.o" "../StdPeriph_Driver/src/stm32f10x_usart.c"
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"StdPeriph_Driver/src/stm32f10x_wwdg.d" -MT"StdPeriph_Driver/src/stm32f10x_wwdg.o" -o "StdPeriph_Driver/src/stm32f10x_wwdg.o" "../StdPeriph_Driver/src/stm32f10x_wwdg.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_spi.c
- 
-Building file: ../FreeRTOS/croutine.c
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"FreeRTOS/croutine.d" -MT"FreeRTOS/croutine.o" -o "FreeRTOS/croutine.o" "../FreeRTOS/croutine.c"
-Finished building: ../StdPeriph_Driver/src/stm32f10x_wwdg.c
-Finished building: ../StdPeriph_Driver/src/stm32f10x_tim.c
- 
- 
-Building file: ../FreeRTOS/event_groups.c
-Building file: ../FreeRTOS/heap_1.c
-Finished building: ../StdPeriph_Driver/src/stm32f10x_usart.c
-Invoking: MCU GCC Compiler
-Finished building: ../FreeRTOS/croutine.c
- 
-Invoking: MCU GCC Compiler
- 
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-Building file: ../FreeRTOS/list.c
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"FreeRTOS/event_groups.d" -MT"FreeRTOS/event_groups.o" -o "FreeRTOS/event_groups.o" "../FreeRTOS/event_groups.c"
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"FreeRTOS/heap_1.d" -MT"FreeRTOS/heap_1.o" -o "FreeRTOS/heap_1.o" "../FreeRTOS/heap_1.c"
-Building file: ../FreeRTOS/port.c
-Invoking: MCU GCC Compiler
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"FreeRTOS/list.d" -MT"FreeRTOS/list.o" -o "FreeRTOS/list.o" "../FreeRTOS/list.c"
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"FreeRTOS/port.d" -MT"FreeRTOS/port.o" -o "FreeRTOS/port.o" "../FreeRTOS/port.c"
-Finished building: ../FreeRTOS/port.c
-Finished building: ../FreeRTOS/heap_1.c
-Finished building: ../FreeRTOS/list.c
- 
- 
- 
-Building file: ../FreeRTOS/queue.c
-Building file: ../FreeRTOS/stream_buffer.c
-Finished building: ../FreeRTOS/event_groups.c
-Building file: ../FreeRTOS/tasks.c
-Invoking: MCU GCC Compiler
-Invoking: MCU GCC Compiler
-Invoking: MCU GCC Compiler
- 
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"FreeRTOS/stream_buffer.d" -MT"FreeRTOS/stream_buffer.o" -o "FreeRTOS/stream_buffer.o" "../FreeRTOS/stream_buffer.c"
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"FreeRTOS/queue.d" -MT"FreeRTOS/queue.o" -o "FreeRTOS/queue.o" "../FreeRTOS/queue.c"
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"FreeRTOS/tasks.d" -MT"FreeRTOS/tasks.o" -o "FreeRTOS/tasks.o" "../FreeRTOS/tasks.c"
-Building file: ../FreeRTOS/timers.c
-Invoking: MCU GCC Compiler
-D:\GIT\GitHub\STM32_RTOS_ModBus\FreeRTOS_ModBus\Debug
-arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -mfloat-abi=soft -DSTM32 -DSTM32F1 -DSTM32F103C8Tx -DDEBUG -DSTM32F10X_MD -DUSE_STDPERIPH_DRIVER -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/StdPeriph_Driver/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS/include" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/FreeRTOS" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/inc" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/device" -I"D:/GIT/GitHub/STM32_RTOS_ModBus/FreeRTOS_ModBus/CMSIS/core" -O0 -g3 -Wall -fmessage-length=0 -ffunction-sections -c -MMD -MP -MF"FreeRTOS/timers.d" -MT"FreeRTOS/timers.o" -o "FreeRTOS/timers.o" "../FreeRTOS/timers.c"
-Finished building: ../FreeRTOS/timers.c
- 
-Finished building: ../FreeRTOS/stream_buffer.c
- 
-Finished building: ../FreeRTOS/queue.c
- 
-Finished building: ../FreeRTOS/tasks.c
  
 Building target: FreeRTOS_ModBus.elf
 Invoking: MCU GCC Linker
@@ -242,11 +38,8 @@ Generating binary and Printing size information:
 arm-none-eabi-objcopy -O binary "FreeRTOS_ModBus.elf" "FreeRTOS_ModBus.bin"
 arm-none-eabi-size "FreeRTOS_ModBus.elf"
    text	   data	    bss	    dec	    hex	filename
-  11560	   1088	  19308	  31956	   7cd4	FreeRTOS_ModBus.elf
+  11652	   1088	  19324	  32064	   7d40	FreeRTOS_ModBus.elf
  
-14:45:03 **** Incremental Build of configuration Debug for project FreeRTOS_ModBus ****
-make -j4 all 
-make: Nothing to be done for 'all'.
-14:45:23 **** Incremental Build of configuration Debug for project FreeRTOS_ModBus ****
+15:59:59 **** Incremental Build of configuration Debug for project FreeRTOS_ModBus ****
 make -j4 all 
 make: Nothing to be done for 'all'.
