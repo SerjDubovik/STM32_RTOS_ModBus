@@ -1,0 +1,823 @@
+#include "stm32f10x.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+
+#include "main.h"
+#include "timer.h"
+
+
+#define F_CPU 8000000UL
+
+#define adrr_devise 					81 // 2				// адрес этого устройства в сети модбас
+#define leth_array						50					// длинна массива для принятых/отправленых данных. служит для проверки возможности записи по адресу
+
+
+#define I2C_PORT         				I2C1
+#define I2C_GPIO_PORT    				GPIOB
+#define I2C_CLOCK        				RCC_APB1Periph_I2C1
+
+/* LM75 defines */
+//#define LM75_ADDR                     	0x90 // LM75 address
+
+/* LM75 registers */
+#define LM75_REG_TEMP                 	0x00 // Temperature
+#define LM75_REG_CONF                 	0x01 // Configuration
+#define LM75_REG_THYS                 	0x02 // Hysteresis
+#define LM75_REG_TOS                  	0x03 // Overtemperature shutdown
+
+
+	void I2C1_init(void);
+
+	void LM75_WriteConf(uint8_t value, uint8_t LM75_Address);
+	uint8_t LM75_ReadConf(uint8_t LM75_Address);
+	void LM75_WriteReg(uint8_t reg, uint16_t value, uint8_t LM75_Address);
+	uint16_t LM75_ReadReg(uint8_t reg, uint8_t LM75_Address);
+
+	void LM75_Shutdown(FunctionalState newstate, uint8_t LM75_Address);
+	int16_t LM75_Temperature(uint8_t LM75_Address);
+
+
+
+// структуры
+typedef struct
+{
+	unsigned int 	count_modbas_in;						// счётчик кол-ва принятых байт
+	unsigned int 	array_modbas_in[leth_array];			// буфер для приёма из уарта
+} modbus_in_str;
+
+modbus_in_str Modbus_in_str;
+
+typedef struct
+{
+	unsigned int 	count_modbas_out;						// счётчик кол-ва переданных байт
+	unsigned int 	array_modbas_out[leth_array];			// буфер для передачи из уарта
+}modbus_out_str;
+
+modbus_out_str Modbus_out_str;
+
+
+typedef struct
+{
+	unsigned int	var;
+}i2c1_in_str;
+
+i2c1_in_str I2C1_in_str;
+
+
+typedef struct
+{
+	unsigned int	temper_0;								// микросхема с адресом 0
+	unsigned int	temper_1;								// микросхема с адресом 0
+	unsigned int	temper_2;								// микросхема с адресом 0
+}i2c1_out_str;
+
+i2c1_out_str C2C1_out_str;
+
+
+// очередь сообщений
+QueueHandle_t vModBus_slave_queue_in;						// для работы с модбасом
+QueueHandle_t vModBus_slave_queue_out;
+
+QueueHandle_t vI2C1_queue_in;								// для работы с квадрашиной
+QueueHandle_t vI2C1_queue_out;
+
+
+
+//глобальные переменные
+unsigned int 	delay_packet 			= 0;				// задержка между пакетами. будет равна 7, что значит 1,75 мс
+unsigned int	flag_UART_in 			= 0;				// флаг начала приёма посылки по UART
+
+unsigned int	buffer_index = 0;							// счётчик для отправки
+
+
+
+// Обработчики прерываний
+
+void TIM2_IRQHandler (void)									// обработчик таймера для всяких задержек
+{
+	unsigned short status;
+	status = TIM2->SR;
+	TIM2->SR = ~status;
+
+	if(status & TIM_SR_UIF)
+	{
+		if(delay_packet != 0)								// отсчёт времени для слейва
+		{
+			delay_packet--;
+		}
+
+		 if (flag_UART_in == 1) 							// проверка флага начала приёма. истина когда пришёл первый байт.
+		 	{
+		 		if (delay_packet == 0)						// проверка на таймаут приёма. пока время не вышло ждём байты
+		 		{
+		 			flag_UART_in = 0;						// сбрасываем флаг начала приема, переходим к анализу принятого
+
+
+		 			xQueueSendFromISR(vModBus_slave_queue_in,&(Modbus_in_str),0);
+
+		 			USART1->CR1  &=  ~USART_CR1_RXNEIE;				    // прерывание по завершению приёма. выключим.
+
+		 		}
+		 	}
+	}
+}	// скобка TIM2_IRQHandler
+
+
+
+
+
+void USART1_IRQHandler(void)
+{
+	unsigned short temp =  USART1->SR;
+	USART1->SR = 0;
+
+	 if (temp & USART_SR_RXNE)								// RXNE - что-то пришло, можно забирать. сбрасывается при чтении DR
+		{
+
+			 Modbus_in_str.array_modbas_in[(Modbus_in_str.count_modbas_in & 0x0ff)] = USART1->DR;	// записываем байт в буферный массив для приёма.
+			 Modbus_in_str.count_modbas_in++;				// увеличиваем счётчик байт в буфере
+
+
+			 delay_packet = 7;								// запускаем отсчёт 1,75 мс, каждый новый байт будет поддёргивать эту переменную. закончились байты - посылка принята.
+			 flag_UART_in = 1;								// флаг старта приёма посылки
+
+			 return;
+		}
+
+
+
+
+
+	 if(temp & USART_SR_TC)
+	 {
+		 USART1->CR1 	&= 	~(USART_CR1_TCIE); 				// выключаем прерывание по завершении передачи. здесь нужено включать приёмник
+
+		 //GPIOC->BSRR =  GPIO_BSRR_BR12;					// записать 0 в GPIOA.12. слушаем, если управляем микросхемой передатчиком сами
+		 return;
+	 }
+
+
+
+
+
+	 if (temp & USART_SR_TXE)
+		 {
+
+		 	 xQueueReceiveFromISR(vModBus_slave_queue_out,&(Modbus_out_str),0);
+
+			 buffer_index++;												// Увеличиваем индекс
+
+
+			 USART1->DR = Modbus_out_str.array_modbas_out[buffer_index];   	// Берем данные из буффера.
+
+			 if(buffer_index == (Modbus_out_str.count_modbas_out-1))  		// Вывели весь буффер?
+				{
+					USART1->CR1 	&= 	~(USART_CR1_TXEIE); 				// Запрещаем прерывание по опустошению - передача закончена
+					USART1->CR1 	|= 	USART_CR1_TCIE; 					// включаем прерывание по завершении передачи
+
+					buffer_index = 0;										// сбрасываем буферную переменную счётчик
+
+					USART1->CR1  |=	USART_CR1_RXNEIE;				    	// прерывание по завершению приёма включено
+					Modbus_in_str.count_modbas_in = 0;						// обнуляем счётную переменную
+				}
+		 }
+} // скобка USART1_IRQHandler
+
+
+
+
+
+//код обработки ошибок при создании задач
+#define	ERROR_ACTION(CODE,POS)		do{}while(0)
+
+
+
+
+
+
+//TODO I2C1
+void vI2C1 (void *pvParameters)
+{
+	i2c1_in_str		Receive_I2C1_in_str;
+	i2c1_out_str	Sender_I2C1_out_str;
+
+	uint8_t LM75_ADDR = 0x90;
+
+	Sender_I2C1_out_str.temper_0 = 0;
+	Sender_I2C1_out_str.temper_1 = 0;
+	Sender_I2C1_out_str.temper_2 = 0;
+
+	I2C1_init();
+
+
+
+
+	while(1)
+	{
+		LM75_ADDR = 0x90;
+
+		Sender_I2C1_out_str.temper_0 = LM75_Temperature();
+
+		xQueueSend(vI2C1_queue_out,&Sender_I2C1_out_str,4);
+
+		taskYIELD();
+
+	}// скобочка бесконечного цикла
+} // скобочка vI2C1
+
+
+
+
+//TODO blinker
+// Задача моргалка. Просто так. Мигает диодиком
+void vBlinker (void *pvParameters)
+{
+
+
+	//Конфигурирование GPIOC.13	красный светик на плате
+	GPIOC->CRH &= ~GPIO_CRH_MODE13;   			// очистить разряды MODE
+	GPIOC->CRH &= ~GPIO_CRH_CNF13;    			// очистить разряды CNF
+	GPIOC->CRH |=  GPIO_CRH_MODE13;   			// выход, 50MHz
+	GPIOC->CRH &= ~GPIO_CRH_CNF13;    			// общего назначения, симметричный
+
+
+
+	while(1)
+	{
+
+		GPIOC->BSRR = GPIO_BSRR_BR13;
+
+		vTaskDelay(250);
+
+		GPIOC->BSRR = GPIO_BSRR_BS13;
+
+		vTaskDelay(250);
+
+	}// безконечный цикл задачи vBlinker
+} // скобочка таска blinker
+
+
+
+
+
+
+
+
+
+//TODO slave
+void vModBus_slave (void *pvParameters)
+{
+
+	modbus_in_str	Receive_Modbus_in_str;			// локальные экземпляры структур из прерывания уарта
+	modbus_out_str	Sender_Modbus_out_str;
+
+	i2c1_out_str 	Receive_I2C1_in_str;
+
+
+	unsigned short	array_mb[leth_array]	= {};	// массив для хранения принятых/переданных слов
+
+	unsigned long 	crc_calc 				= 0;	// расчётная контрольная сумма
+	unsigned long 	adrr_var 				= 0;	// собраный адрес из массива принятого по сети. для сравнения.
+	unsigned long 	quantity_byte 			= 0;	// кол-во байт которое необходимо записать или считать по сети из памяти
+
+	unsigned int 	crc_read_low 			= 0;	// буферные переменные для сравнение контрольной суммы
+	unsigned int 	crc_read_high 			= 0;	//
+	unsigned int 	crc_calc_low 			= 0;	//
+	unsigned int 	crc_calc_high 			= 0;	//
+
+
+
+
+
+	// Вычислим и настроим бодрейт. (72 000 000/19200)/16 = 234.375 Получаем старшую часть 0хЕА, а младшую 0х6. Итого BRR = 0xEA6.
+	// (72 000 000 / 115 200) / 16 = 39,0625
+	// 39 = 27h
+	// 0.0625 * 16 = 1 (нужно округлять до целого в большую. не в этом случае канеш)
+	// 27h и 1h = 271h
+
+	/*
+	 * 115200 - 0x0271
+	 * 76800 - 0x03AA
+	 * 57600 - 0x04E2
+	 * 38400 - 0x0753
+	 * 28800 - 0x09C4
+	 * 19200 - 0x0EA6
+	 * 14400 - 0x1388
+	 * 9600 - 0x1D4C
+	 * 4800 - 0x3A98
+	 * 2400 - 0x7530
+	 */
+
+	//включаем татирование
+	RCC->APB2ENR |=   RCC_APB2ENR_AFIOEN;                // тактирование альтернативных функций GPIO
+	RCC->APB2ENR |=   RCC_APB2ENR_USART1EN;              // тактирование USART1
+
+	//конфигурирование PORTA.9 для TX
+	GPIOA->CRH   &= ~(GPIO_CRH_MODE9 | GPIO_CRH_CNF9);   // предочистка MODE и CNF
+	GPIOA->CRH   |=   GPIO_CRH_MODE9 | GPIO_CRH_CNF9_1;  // двухтактный выход с альтернати ф-ей, 50MHz
+
+	//конфигурирование PORTA.10 для RX
+	GPIOA->CRH   &= ~(GPIO_CRH_MODE10 | GPIO_CRH_CNF10);   // предочистка MODE и CNF
+	GPIOA->CRH   |=   GPIO_CRH_CNF10_0;                   // вход, третье состояние
+
+
+	// Задание режима работы
+	USART1->BRR   =   0x0271;                           // 115200
+	USART1->CR1  &=  ~USART_CR1_M;                      // 8 бит данных
+	USART1->CR2  &=  ~USART_CR2_STOP;                   // кол-во стоп-бит: 1
+
+	// Управление работой
+	USART1->CR1  |=   USART_CR1_TE;                     // включение передатчика
+	USART1->CR1  |=   USART_CR1_RE;                     // включение приёмника
+
+	USART1->CR1  |=   USART_CR1_UE;                     // включение модуля USART4
+
+	// Разрешить прерывания
+	NVIC_EnableIRQ (USART1_IRQn);
+	USART1->CR1  |=	USART_CR1_RXNEIE;				    // прерывание по завершению приёма
+	//USART1->CR1  |= 	USART_CR1_TCIE;                 // прерывание по завершению передачи
+
+
+
+
+
+	while(1)
+	{
+
+		if(array_mb[0] == 1)
+		{
+			GPIOC->BSRR = GPIO_BSRR_BR13;
+		}
+		if(array_mb[0] == 2)
+		{
+			GPIOC->BSRR = GPIO_BSRR_BS13;
+		}
+
+
+		array_mb[8]++;
+
+
+		if(xQueueReceive(vI2C1_queue_out,&(Receive_I2C1_in_str),0))
+		{
+			array_mb[9] = Receive_I2C1_in_str.temper_0;						// тестовая переменная. счётчик считает в vI2C1 таске и передаёт сюда.
+			array_mb[10] = Receive_I2C1_in_str.temper_1;
+			array_mb[11] = Receive_I2C1_in_str.temper_2;
+		}
+
+
+		if(xQueueReceiveFromISR(vModBus_slave_queue_in,&(Receive_Modbus_in_str),0))				// ждём, пока прерывание не пришлёт посылку.//
+		{
+
+			if (Receive_Modbus_in_str.array_modbas_in[0] == adrr_devise) 							// проверка адреса устройства
+			{																// если адрес совпал, то смотрим что в пакете дальше
+				crc_calc = CRC16(Receive_Modbus_in_str.array_modbas_in, (Receive_Modbus_in_str.count_modbas_in-2));		// считаем CRC принятого пакета
+
+				crc_read_high = Receive_Modbus_in_str.array_modbas_in[Receive_Modbus_in_str.count_modbas_in-2]; 		// старший
+				crc_read_low = Receive_Modbus_in_str.array_modbas_in[Receive_Modbus_in_str.count_modbas_in-1];			// младший
+
+				crc_calc_low = ((crc_calc >> 8) & 0x00FF);					// младший (count_modbas_in+2)
+				crc_calc_high = (crc_calc & 0x00FF);						// старший (count_modbas_in+1)
+
+
+				if((crc_read_low == crc_calc_low)&&(crc_read_high == crc_calc_high))// проверка соответствия контрольной суммы.
+				{
+
+
+					switch (Receive_Modbus_in_str.array_modbas_in[1]) 	// свич определяет какая команда кроется в пакете.
+						{
+
+							case 0x06:				// запись значения в один регистр хранения (Preset Single Register).
+							{
+								adrr_var = Receive_Modbus_in_str.array_modbas_in[2];								// собераем адрес из массива в одну переменную
+								adrr_var = ((adrr_var << 8) | Receive_Modbus_in_str.array_modbas_in[3]);
+
+								if (adrr_var <= leth_array)															// проверка возможности записи по указанному адресу
+								{
+
+									array_mb[adrr_var] = Receive_Modbus_in_str.array_modbas_in[4];
+									array_mb[adrr_var] = ((array_mb[adrr_var] << 8) | Receive_Modbus_in_str.array_modbas_in[5]);
+
+
+
+									for(int i = 0; i<= Receive_Modbus_in_str.count_modbas_in; i++)					// скопируем масивы. так как ответ должен быть таким же как приёмный пакет.
+									{
+										Sender_Modbus_out_str.array_modbas_out[i] = Receive_Modbus_in_str.array_modbas_in[i];
+									}
+
+									Sender_Modbus_out_str.count_modbas_out = Receive_Modbus_in_str.count_modbas_in;
+									Receive_Modbus_in_str.count_modbas_in = 0;
+
+
+									// отправка ответа мастеру
+									xQueueSend(vModBus_slave_queue_out,&Sender_Modbus_out_str,4);		// шлём в обработчик заполненую структуру
+
+									//GPIOC->BSRR =  GPIO_BSRR_BS12;
+
+									USART1->DR = Sender_Modbus_out_str.array_modbas_out[0];		// Отправляем первый байт из массива для отправки
+									USART1->CR1 	|= 	USART_CR1_TXEIE;		// включаем прерывание по опустошению души
+
+
+								} // скобка проверки адреса переменной
+								else 														// если адрес выходит за диапазон доступних, нужно записать код ошибки
+								{
+									Receive_Modbus_in_str.count_modbas_in = 0;
+									USART1->CR1  |=	USART_CR1_RXNEIE;				    // прерывание по завершению приёма
+								} // else скобка
+
+							} // скобка команды 0х06
+							break;
+
+
+
+							case 0x10:				// запись значений в несколько регистров хранения (Preset Multiple Registers)
+							{
+								adrr_var = Receive_Modbus_in_str.array_modbas_in[2];								// собераем адрес из массива в одну переменную
+								adrr_var = ((adrr_var << 8) | Receive_Modbus_in_str.array_modbas_in[3]);
+
+
+									if (adrr_var + (Receive_Modbus_in_str.array_modbas_in[6]/2) <= leth_array)	// проверка возможности записи по указанному адресу
+									{
+
+										int adrr_var_buf = adrr_var;
+
+										for (int i = 0; Receive_Modbus_in_str.array_modbas_in[6] > i ; i++)
+										{
+											array_mb[adrr_var_buf] = Receive_Modbus_in_str.array_modbas_in[(7+i)];	//
+											adrr_var_buf++;
+										} // скобка цикла
+
+
+										Sender_Modbus_out_str.array_modbas_out[0] = Receive_Modbus_in_str.array_modbas_in[0];
+										Sender_Modbus_out_str.array_modbas_out[1] = Receive_Modbus_in_str.array_modbas_in[1];
+										Sender_Modbus_out_str.array_modbas_out[2] = Receive_Modbus_in_str.array_modbas_in[2];
+										Sender_Modbus_out_str.array_modbas_out[3] = Receive_Modbus_in_str.array_modbas_in[3];
+										Sender_Modbus_out_str.array_modbas_out[4] = Receive_Modbus_in_str.array_modbas_in[4];
+										Sender_Modbus_out_str.array_modbas_out[5] = Receive_Modbus_in_str.array_modbas_in[5];
+
+
+										crc_calc = CRC16(Sender_Modbus_out_str.array_modbas_out, 6);				// считаем CRC отправляемого пакета, 3 точно известных байта и байты считанные , зависит от кол-ва в переменной
+
+										crc_calc_low = ((crc_calc >> 8) & 0x00FF);			// младший (count_modbas_in+2)
+										crc_calc_high = (crc_calc & 0x00FF);				// старший (count_modbas_in+1)
+
+										Sender_Modbus_out_str.array_modbas_out[6] = crc_calc_high;				// посчитаная контролька, пишем в массив для отправки
+										Sender_Modbus_out_str.array_modbas_out[7] = crc_calc_low;
+
+
+										Sender_Modbus_out_str.count_modbas_out = 8;								// ответ всегда равен 8 байт
+										Receive_Modbus_in_str.count_modbas_in = 0;
+
+
+										// отправка ответа мастеру
+										xQueueSend(vModBus_slave_queue_out,&Sender_Modbus_out_str,4);		// шлём в обработчик заполненую структуру
+
+										//GPIOC->BSRR =  GPIO_BSRR_BS12;
+
+
+										USART1->DR = Sender_Modbus_out_str.array_modbas_out[0];		// Отправляем первый байт из массива для отправки
+										USART1->CR1 	|= 	USART_CR1_TXEIE;		// включаем прерывание по опустошению души
+
+
+									} // скобка проверки адреса переменных
+									else
+									{
+										Receive_Modbus_in_str.count_modbas_in = 0;
+										USART1->CR1  |=	USART_CR1_RXNEIE;				    // прерывание по завершению приёма
+									} // скобка проверки адреса переменных
+
+							} // скобка команды 0х10
+							break;
+
+
+
+							case 0x03:				// чтение значений из нескольких регистров хранения (Read Holding Registers).
+							{
+
+								adrr_var = Receive_Modbus_in_str.array_modbas_in[2];										// собераем адрес из массива в одну переменную
+								adrr_var = ((adrr_var << 8) | Receive_Modbus_in_str.array_modbas_in[3]);
+
+								quantity_byte = Receive_Modbus_in_str.array_modbas_in[4];
+								quantity_byte = ((quantity_byte << 8) | Receive_Modbus_in_str.array_modbas_in[5]);		// соберём кол-во байт, которое нужно прочитать
+
+
+								if ((adrr_var <= leth_array) || ((adrr_var + quantity_byte) <= leth_array))	// проверка возможности чтения данных по указанному адресу.
+								{
+									Sender_Modbus_out_str.array_modbas_out[0] = Receive_Modbus_in_str.array_modbas_in[0];						// адрес слейва, который отвечает на запрос
+									Sender_Modbus_out_str.array_modbas_out[1] = Receive_Modbus_in_str.array_modbas_in[1];						// код команды, на которую отвечает слейв (0х3 конкретно в этом случае)
+									Sender_Modbus_out_str.array_modbas_out[2] = quantity_byte * 2;						// колличество байт, которые передаём. переменная 2 байта, верх срежется, поэтому не можем разом в один пакет записать более 255-ти байт
+
+
+
+									for (int i = 0; i <= quantity_byte; i++, adrr_var++)
+									{
+										Sender_Modbus_out_str.array_modbas_out[i*2+3] = ((array_mb[adrr_var] >> 8) & 0x00FF);			// читаем из массива хранения в сеть по указанному адресу
+										Sender_Modbus_out_str.array_modbas_out[i*2+4] = (array_mb[adrr_var] & 0x00FF);
+									}
+
+									quantity_byte *= 2;
+																									// в слове по два байта
+									crc_calc = CRC16(Sender_Modbus_out_str.array_modbas_out, (quantity_byte + 3));		// считаем CRC отправляемого пакета, 3 точно известных байта и байты считанные , зависит от колва в переменной
+
+									crc_calc_low = ((crc_calc >> 8) & 0x00FF);						// младший (count_modbas_in+2)
+									crc_calc_high = (crc_calc & 0x00FF);							// старший (count_modbas_in+1)
+
+									Sender_Modbus_out_str.array_modbas_out[(quantity_byte + 3)] = crc_calc_high;			// посчитаная контролька, пишем в массив для отправки
+									Sender_Modbus_out_str.array_modbas_out[(quantity_byte + 3)+1] = crc_calc_low;			//
+
+									Sender_Modbus_out_str.count_modbas_out = (quantity_byte + 3)+2;
+									Receive_Modbus_in_str.count_modbas_in = 0;
+
+
+									// отправка ответа мастеру
+									xQueueSend(vModBus_slave_queue_out,&Sender_Modbus_out_str,4);		// шлём в обработчик заполненую структуру
+
+									//GPIOC->BSRR =  GPIO_BSRR_BS12;
+
+
+									USART1->DR = Sender_Modbus_out_str.array_modbas_out[0];		// Отправляем первый байт из массива для отправки
+									USART1->CR1 	|= 	USART_CR1_TXEIE;		// включаем прерывание по опустошению души
+
+
+								} // скобка проверки адреса переменной
+								else // если адрес выходит за диапазон доступних, нужно записать код ошибки
+								{
+									Receive_Modbus_in_str.count_modbas_in = 0;
+									USART1->CR1  |=	USART_CR1_RXNEIE;				    // прерывание по завершению приёма
+								} // else скобка
+
+							} // скобка команды 0х03
+							break;
+
+
+
+							case 0x04:				// чтение значений из нескольких регистров ввода (Read Input Registers).
+							{
+								USART1->CR1  |=	USART_CR1_RXNEIE;				    // прерывание по завершению приёма
+							} // скобка команды 0х04
+							break;
+
+						} // скобка свича разбора пакета на команды.
+
+
+				} // скобка проверки совпадения принятого crc
+
+				else
+				{
+					// если оказались здесь, то crc не совпал. нужно сформировать обработчик ошибочной ситуации
+					Receive_Modbus_in_str.count_modbas_in = 0;
+					USART1->CR1  |=	USART_CR1_RXNEIE;				    // прерывание по завершению приёма
+				} // else скобка проверки совпадения принятого crc
+
+			} // скобка проверки адреса
+
+
+			else
+			{
+				// если оказались здесь, то посылка не наша, выходим из проверки и ждём следующую
+				Receive_Modbus_in_str.count_modbas_in = 0;
+				USART1->CR1  |=	USART_CR1_RXNEIE;				    // прерывание по завершению приёма
+			} // else скобка проверки адреса
+
+	}
+
+
+	}// бесконечный цикл задачи vModBus_slave
+
+} // закрывает задачу vModBus_slave
+
+
+
+
+
+
+
+
+
+//TODO main
+int main(void)
+{
+
+	vModBus_slave_queue_in		= xQueueCreate(1,sizeof(modbus_in_str));		// инициализация очереди отправки в таск модбас
+	vModBus_slave_queue_out 	= xQueueCreate(1,sizeof(modbus_out_str));		// инициализация очереди приёма из таска модбаса
+
+	vI2C1_queue_in 				= xQueueCreate(1,sizeof(i2c1_in_str));			// в таск vI2C1
+	vI2C1_queue_out 			= xQueueCreate(1,sizeof(i2c1_out_str));			// из таска vI2C1
+
+	SystemInit();
+	init_timer2();																// инициализация таймера всех задержек
+
+
+	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;   // Разрешить тактирование GPIOA
+	RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;   // Разрешить тактирование GPIOB
+	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;   // Разрешить тактирование GPIOC
+	RCC->APB2ENR |= RCC_APB2ENR_IOPDEN;   // Разрешить тактирование GPIOD
+	RCC->APB2ENR |= RCC_APB2ENR_IOPEEN;	  // Разрешить тактирование GPIOE
+
+
+
+
+	if(pdTRUE != xTaskCreate(vBlinker,"Blinker", 	500, NULL, tskIDLE_PRIORITY + 1, NULL))
+		{
+			ERROR_ACTION(TASK_NOT_CREATE,0);
+		}
+
+
+
+	if(pdTRUE != xTaskCreate(vModBus_slave,"ModBus Slave", 	500, NULL, tskIDLE_PRIORITY + 1, NULL))
+		{
+			ERROR_ACTION(TASK_NOT_CREATE,0);
+		}
+
+
+	if(pdTRUE != xTaskCreate(vI2C1,"I2C1", 	500, NULL, tskIDLE_PRIORITY + 1, NULL))
+		{
+			ERROR_ACTION(TASK_NOT_CREATE,0);
+		}
+
+
+
+	__enable_irq ();
+
+	vTaskStartScheduler();						// Запускаем диспетчер и понеслась.
+
+
+}	// скобочка мейна
+
+
+
+
+
+
+
+// функция для расчёта контрольной суммы
+unsigned short CRC16(int *puchMsg,  /* Сообщение       */
+                            unsigned short usDataLen /* Длина сообщения */)
+{
+    unsigned short crc = 0xFFFF;
+    unsigned short uIndex;
+    int i;
+    for (uIndex = 0; uIndex < usDataLen; uIndex += 1) {
+        crc ^= (unsigned short)*(puchMsg + uIndex);
+        for (i = 8; i != 0; i -= 1) {
+          if ((crc & 0x0001) == 0) { crc >>= 1; }
+          else { crc >>= 1; crc ^= 0xA001; }			// полином задаём здесь
+        }
+    }
+    // Изменим порядок следования байт
+ //   crc = ((crc >> 8) & 0x00FF) | ((crc << 8) & 0xFF00);
+    return crc;
+}
+
+
+
+
+
+void I2C1_init(void)
+{
+
+  I2C_InitTypeDef I2C_InitStructure;
+  GPIO_InitTypeDef GPIO_InitStructure;
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C1, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+  I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
+  I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
+  I2C_InitStructure.I2C_OwnAddress1 = 0x00; 														// Собственный адрес
+  I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
+  I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
+  I2C_InitStructure.I2C_ClockSpeed = 100000; 														// 100 кГц
+  I2C_Cmd(I2C1, ENABLE);
+
+  I2C_Init(I2C1, &I2C_InitStructure);
+}
+
+
+
+// Read 16-bit LM75 register
+uint16_t LM75_ReadReg(uint8_t reg, uint8_t LM75_Address)
+{
+	uint16_t value;
+
+	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); 														// Enable I2C acknowledgment
+	I2C_GenerateSTART(I2C_PORT,ENABLE);
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Transmitter); 								// Send slave address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); 					// Wait for EV6
+	I2C_SendData(I2C_PORT,reg); 																	// Send register address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_GenerateSTART(I2C_PORT,ENABLE); 															// Send repeated START condition (aka Re-START)
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Receiver); 								// Send slave address for READ
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)); 						// Wait for EV6
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_RECEIVED)); 								// Wait for EV7 (Byte received from slave)
+	value = (I2C_ReceiveData(I2C_PORT) << 8); 														// Receive high byte
+	I2C_AcknowledgeConfig(I2C_PORT,DISABLE); 														// Disable I2C acknowledgment
+	I2C_GenerateSTOP(I2C_PORT,ENABLE); 																// Send STOP condition
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_RECEIVED)); 								// Wait for EV7 (Byte received from slave)
+	value |= I2C_ReceiveData(I2C_PORT); 															// Receive low byte
+
+	return value;
+}
+
+
+// Write 16-bit LM75 register
+void LM75_WriteReg(uint8_t reg, uint16_t value, uint8_t LM75_Address)
+{
+	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); 														// Enable I2C acknowledgment
+	I2C_GenerateSTART(I2C_PORT,ENABLE);
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Transmitter); 								// Send slave address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); 					// Wait for EV6
+	I2C_SendData(I2C_PORT,reg); 																	// Send register address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_SendData(I2C_PORT,(uint8_t)(value >> 8)); 													// Send high byte
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_SendData(I2C_PORT,(uint8_t)value); 															// Send low byte
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_GenerateSTOP(I2C_PORT,ENABLE);
+}
+
+
+
+// Read value from LM75 configuration register (8 bit)
+uint8_t LM75_ReadConf(uint8_t LM75_Address)
+{
+	uint8_t value;
+
+	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); 														// Enable I2C acknowledgment
+	I2C_GenerateSTART(I2C_PORT,ENABLE);
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Transmitter);	 							// Send slave address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); 					// Wait for EV6
+	I2C_SendData(I2C_PORT,LM75_REG_CONF); 															// Send register address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_GenerateSTART(I2C_PORT,ENABLE); 															// Send repeated START condition (aka Re-START)
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Receiver); 								// Send slave address for READ
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)); 						// Wait for EV6
+	I2C_AcknowledgeConfig(I2C_PORT,DISABLE); 														// Disable I2C acknowledgment
+	I2C_GenerateSTOP(I2C_PORT,ENABLE); 																// Send STOP condition
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_RECEIVED)); 								// Wait for EV7 (Byte received from slave)
+	value = I2C_ReceiveData(I2C_PORT);
+
+	return value;
+}
+
+// Write value to LM75 configuration register  (8 bit)
+void LM75_WriteConf(uint8_t value, uint8_t LM75_Address)
+{
+	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); 														// Enable I2C acknowledgment
+	I2C_GenerateSTART(I2C_PORT,ENABLE);
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Transmitter); 								// Send slave address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); 					// Wait for EV6
+	I2C_SendData(I2C_PORT,LM75_REG_CONF); 															// Send register address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_SendData(I2C_PORT,value);
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_GenerateSTOP(I2C_PORT,ENABLE);
+}
+
+// Set LM75 shutdown mode
+// newstate:
+//    ENABLE = put LM75 into powerdown mode
+//    DISABLE = wake up LM75
+void LM75_Shutdown(FunctionalState newstate, uint8_t LM75_Address)
+{
+	uint8_t value;
+
+	value = LM75_ReadConf(LM75_Address);
+	LM75_WriteConf(newstate == ENABLE ? value | 0x01 : value & 0xFE);
+}
+
+// Read temperature readings from LM75 in decimal format
+// IIIF where:
+//   III - integer part
+//   F   - fractional part
+// e.g. 355 means 35.5C
+int16_t LM75_Temperature(uint8_t LM75_Address)
+{
+	uint16_t raw;
+	int16_t temp;
+
+	raw = LM75_ReadReg(LM75_REG_TEMP, LM75_Address) >> 7;
+	if (raw & 0x0100) {
+		// Negative temperature
+		temp = -10 * (((~(uint8_t)(raw & 0xFE) + 1) & 0x7F) >> 1) - (raw & 0x01) * 5;
+	} else {
+		// Positive temperature
+		temp = ((raw & 0xFE) >> 1) * 10 + (raw & 0x01) * 5;
+	}
+
+	return temp;
+}
+
+
+

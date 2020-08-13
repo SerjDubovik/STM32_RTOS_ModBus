@@ -19,7 +19,7 @@
 #define I2C_CLOCK        				RCC_APB1Periph_I2C1
 
 /* LM75 defines */
-#define LM75_ADDR                     	0x90 // LM75 address
+//#define LM75_ADDR                     	0x90 // LM75 address
 
 /* LM75 registers */
 #define LM75_REG_TEMP                 	0x00 // Temperature
@@ -30,13 +30,13 @@
 
 	void I2C1_init(void);
 
-	void LM75_WriteReg(uint8_t reg, uint16_t value);
-	uint16_t LM75_ReadReg(uint8_t reg);
-	uint8_t LM75_ReadConf(void);
-	void LM75_WriteConf(uint8_t value);
+	void LM75_WriteConf(uint8_t value, uint8_t LM75_Address);
+	uint8_t LM75_ReadConf(uint8_t LM75_Address);
+	void LM75_WriteReg(uint8_t reg, uint16_t value, uint8_t LM75_Address);
+	uint16_t LM75_ReadReg(uint8_t reg, uint8_t LM75_Address);
 
-	void LM75_Shutdown(FunctionalState newstate);
-	int16_t LM75_Temperature(void);
+	void LM75_Shutdown(FunctionalState newstate, uint8_t LM75_Address);
+	int16_t LM75_Temperature(uint8_t LM75_Address);
 
 
 
@@ -68,7 +68,9 @@ i2c1_in_str I2C1_in_str;
 
 typedef struct
 {
-	unsigned int	temper;
+	unsigned int	temper_0;								// микросхема с адресом 0
+	unsigned int	temper_1;								// микросхема с адресом 0
+	unsigned int	temper_2;								// микросхема с адресом 0
 }i2c1_out_str;
 
 i2c1_out_str C2C1_out_str;
@@ -201,8 +203,13 @@ void vI2C1 (void *pvParameters)
 	i2c1_in_str		Receive_I2C1_in_str;
 	i2c1_out_str	Sender_I2C1_out_str;
 
-	Sender_I2C1_out_str.temper = 0;
+	#define  LM75_ADDR1  0x90
+	#define  LM75_ADDR2  0x92
+	#define  LM75_ADDR3  0x94
 
+	Sender_I2C1_out_str.temper_0 = 0;
+	Sender_I2C1_out_str.temper_1 = 0;
+	Sender_I2C1_out_str.temper_2 = 0;
 
 	I2C1_init();
 
@@ -211,8 +218,14 @@ void vI2C1 (void *pvParameters)
 
 	while(1)
 	{
+		Sender_I2C1_out_str.temper_0 = LM75_Temperature(LM75_ADDR1);
+		LM75_Shutdown(DISABLE,LM75_ADDR1);
 
-		Sender_I2C1_out_str.temper = LM75_Temperature();
+		Sender_I2C1_out_str.temper_1 = LM75_Temperature(LM75_ADDR2);
+		LM75_Shutdown(DISABLE,LM75_ADDR2);
+
+		Sender_I2C1_out_str.temper_2 = LM75_Temperature(LM75_ADDR3);
+		LM75_Shutdown(DISABLE,LM75_ADDR3);
 
 		xQueueSend(vI2C1_queue_out,&Sender_I2C1_out_str,4);
 
@@ -355,7 +368,9 @@ void vModBus_slave (void *pvParameters)
 
 		if(xQueueReceive(vI2C1_queue_out,&(Receive_I2C1_in_str),0))
 		{
-			array_mb[9] = Receive_I2C1_in_str.temper;						// тестова€ переменна€. счЄтчик считает в vI2C1 таске и передаЄт сюда.
+			array_mb[9] = Receive_I2C1_in_str.temper_0;						// тестова€ переменна€. счЄтчик считает в vI2C1 таске и передаЄт сюда.
+			array_mb[10] = Receive_I2C1_in_str.temper_1;
+			array_mb[11] = Receive_I2C1_in_str.temper_2;
 		}
 
 
@@ -598,7 +613,7 @@ int main(void)
 	vI2C1_queue_out 			= xQueueCreate(1,sizeof(i2c1_out_str));			// из таска vI2C1
 
 	SystemInit();
-	init_timer2();										// инициализаци€ таймера всех задержек
+	init_timer2();																// инициализаци€ таймера всех задержек
 
 
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;   // –азрешить тактирование GPIOA
@@ -681,10 +696,10 @@ void I2C1_init(void)
 
   I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
   I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
-  I2C_InitStructure.I2C_OwnAddress1 = 0x00; // —обственный адрес
+  I2C_InitStructure.I2C_OwnAddress1 = 0x00; 														// —обственный адрес
   I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
   I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-  I2C_InitStructure.I2C_ClockSpeed = 100000; // 100 к√ц
+  I2C_InitStructure.I2C_ClockSpeed = 100000; 														// 100 к√ц
   I2C_Cmd(I2C1, ENABLE);
 
   I2C_Init(I2C1, &I2C_InitStructure);
@@ -693,80 +708,87 @@ void I2C1_init(void)
 
 
 // Read 16-bit LM75 register
-uint16_t LM75_ReadReg(uint8_t reg) {
+uint16_t LM75_ReadReg(uint8_t reg, uint8_t LM75_Address)
+{
 	uint16_t value;
 
-	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); // Enable I2C acknowledgment
+	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); 														// Enable I2C acknowledgment
 	I2C_GenerateSTART(I2C_PORT,ENABLE);
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); // Wait for EV5
-	I2C_Send7bitAddress(I2C_PORT,LM75_ADDR,I2C_Direction_Transmitter); // Send slave address
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); // Wait for EV6
-	I2C_SendData(I2C_PORT,reg); // Send register address
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); // Wait for EV8
-	I2C_GenerateSTART(I2C_PORT,ENABLE); // Send repeated START condition (aka Re-START)
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); // Wait for EV5
-	I2C_Send7bitAddress(I2C_PORT,LM75_ADDR,I2C_Direction_Receiver); // Send slave address for READ
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)); // Wait for EV6
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_RECEIVED)); // Wait for EV7 (Byte received from slave)
-	value = (I2C_ReceiveData(I2C_PORT) << 8); // Receive high byte
-	I2C_AcknowledgeConfig(I2C_PORT,DISABLE); // Disable I2C acknowledgment
-	I2C_GenerateSTOP(I2C_PORT,ENABLE); // Send STOP condition
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_RECEIVED)); // Wait for EV7 (Byte received from slave)
-	value |= I2C_ReceiveData(I2C_PORT); // Receive low byte
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Transmitter); 							// Send slave address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); 					// Wait for EV6
+	I2C_SendData(I2C_PORT,reg); 																	// Send register address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_GenerateSTART(I2C_PORT,ENABLE); 															// Send repeated START condition (aka Re-START)
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Receiver); 								// Send slave address for READ
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)); 						// Wait for EV6
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_RECEIVED)); 								// Wait for EV7 (Byte received from slave)
+	value = (I2C_ReceiveData(I2C_PORT) << 8); 														// Receive high byte
+	I2C_AcknowledgeConfig(I2C_PORT,DISABLE); 														// Disable I2C acknowledgment
+	I2C_GenerateSTOP(I2C_PORT,ENABLE); 																// Send STOP condition
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_RECEIVED)); 								// Wait for EV7 (Byte received from slave)
+	value |= I2C_ReceiveData(I2C_PORT); 															// Receive low byte
 
 	return value;
 }
 
+
 // Write 16-bit LM75 register
-void LM75_WriteReg(uint8_t reg, uint16_t value) {
-	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); // Enable I2C acknowledgment
+void LM75_WriteReg(uint8_t reg, uint16_t value, uint8_t LM75_Address)
+{
+	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); 														// Enable I2C acknowledgment
 	I2C_GenerateSTART(I2C_PORT,ENABLE);
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); // Wait for EV5
-	I2C_Send7bitAddress(I2C_PORT,LM75_ADDR,I2C_Direction_Transmitter); // Send slave address
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); // Wait for EV6
-	I2C_SendData(I2C_PORT,reg); // Send register address
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); // Wait for EV8
-	I2C_SendData(I2C_PORT,(uint8_t)(value >> 8)); // Send high byte
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); // Wait for EV8
-	I2C_SendData(I2C_PORT,(uint8_t)value); // Send low byte
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); // Wait for EV8
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Transmitter); 								// Send slave address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); 					// Wait for EV6
+	I2C_SendData(I2C_PORT,reg); 																	// Send register address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_SendData(I2C_PORT,(uint8_t)(value >> 8)); 													// Send high byte
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_SendData(I2C_PORT,(uint8_t)value); 															// Send low byte
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
 	I2C_GenerateSTOP(I2C_PORT,ENABLE);
 }
 
+
+
 // Read value from LM75 configuration register (8 bit)
-uint8_t LM75_ReadConf(void) {
+uint8_t LM75_ReadConf(uint8_t LM75_Address)
+{
 	uint8_t value;
 
-	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); // Enable I2C acknowledgment
+	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); 														// Enable I2C acknowledgment
 	I2C_GenerateSTART(I2C_PORT,ENABLE);
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); // Wait for EV5
-	I2C_Send7bitAddress(I2C_PORT,LM75_ADDR,I2C_Direction_Transmitter); // Send slave address
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); // Wait for EV6
-	I2C_SendData(I2C_PORT,LM75_REG_CONF); // Send register address
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); // Wait for EV8
-	I2C_GenerateSTART(I2C_PORT,ENABLE); // Send repeated START condition (aka Re-START)
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); // Wait for EV5
-	I2C_Send7bitAddress(I2C_PORT,LM75_ADDR,I2C_Direction_Receiver); // Send slave address for READ
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)); // Wait for EV6
-	I2C_AcknowledgeConfig(I2C_PORT,DISABLE); // Disable I2C acknowledgment
-	I2C_GenerateSTOP(I2C_PORT,ENABLE); // Send STOP condition
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_RECEIVED)); // Wait for EV7 (Byte received from slave)
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Transmitter);	 							// Send slave address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); 					// Wait for EV6
+	I2C_SendData(I2C_PORT,LM75_REG_CONF); 															// Send register address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
+	I2C_GenerateSTART(I2C_PORT,ENABLE); 															// Send repeated START condition (aka Re-START)
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Receiver); 								// Send slave address for READ
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)); 						// Wait for EV6
+	I2C_AcknowledgeConfig(I2C_PORT,DISABLE); 														// Disable I2C acknowledgment
+	I2C_GenerateSTOP(I2C_PORT,ENABLE); 																// Send STOP condition
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_RECEIVED)); 								// Wait for EV7 (Byte received from slave)
 	value = I2C_ReceiveData(I2C_PORT);
 
 	return value;
 }
 
 // Write value to LM75 configuration register  (8 bit)
-void LM75_WriteConf(uint8_t value) {
-	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); // Enable I2C acknowledgment
+void LM75_WriteConf(uint8_t value, uint8_t LM75_Address)
+{
+	I2C_AcknowledgeConfig(I2C_PORT,ENABLE); 														// Enable I2C acknowledgment
 	I2C_GenerateSTART(I2C_PORT,ENABLE);
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); // Wait for EV5
-	I2C_Send7bitAddress(I2C_PORT,LM75_ADDR,I2C_Direction_Transmitter); // Send slave address
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); // Wait for EV6
-	I2C_SendData(I2C_PORT,LM75_REG_CONF); // Send register address
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); // Wait for EV8
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_MODE_SELECT)); 								// Wait for EV5
+	I2C_Send7bitAddress(I2C_PORT,LM75_Address,I2C_Direction_Transmitter); 								// Send slave address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)); 					// Wait for EV6
+	I2C_SendData(I2C_PORT,LM75_REG_CONF); 															// Send register address
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
 	I2C_SendData(I2C_PORT,value);
-	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); // Wait for EV8
+	while (!I2C_CheckEvent(I2C_PORT,I2C_EVENT_MASTER_BYTE_TRANSMITTED)); 							// Wait for EV8
 	I2C_GenerateSTOP(I2C_PORT,ENABLE);
 }
 
@@ -774,11 +796,12 @@ void LM75_WriteConf(uint8_t value) {
 // newstate:
 //    ENABLE = put LM75 into powerdown mode
 //    DISABLE = wake up LM75
-void LM75_Shutdown(FunctionalState newstate) {
+void LM75_Shutdown(FunctionalState newstate, uint8_t LM75_Address)
+{
 	uint8_t value;
 
-	value = LM75_ReadConf();
-	LM75_WriteConf(newstate == ENABLE ? value | 0x01 : value & 0xFE);
+	value = LM75_ReadConf(LM75_Address);
+	LM75_WriteConf(newstate == ENABLE ? value | 0x01 : value & 0xFE, LM75_Address);
 }
 
 // Read temperature readings from LM75 in decimal format
@@ -786,11 +809,12 @@ void LM75_Shutdown(FunctionalState newstate) {
 //   III - integer part
 //   F   - fractional part
 // e.g. 355 means 35.5C
-int16_t LM75_Temperature(void) {
+int16_t LM75_Temperature(uint8_t LM75_Address)
+{
 	uint16_t raw;
 	int16_t temp;
 
-	raw = LM75_ReadReg(LM75_REG_TEMP) >> 7;
+	raw = LM75_ReadReg(LM75_REG_TEMP, LM75_Address) >> 7;
 	if (raw & 0x0100) {
 		// Negative temperature
 		temp = -10 * (((~(uint8_t)(raw & 0xFE) + 1) & 0x7F) >> 1) - (raw & 0x01) * 5;
